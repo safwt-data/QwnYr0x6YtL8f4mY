@@ -138,5 +138,6 @@ button {
 }
 """
 
-demo.launch(css=css)
+demo.launch(share=True, css=css)
+
 
