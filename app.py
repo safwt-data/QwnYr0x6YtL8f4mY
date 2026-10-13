@@ -1,9 +1,9 @@
 import gradio as gr
 import pandas as pd
-from pathlib import Path
 
-# Load the CSV from the same folder as this script
-df = pd.read_csv("../data/clean_hr_data.csv")
+# Path relative to app.py
+data_path = "data/clean_hr_data.csv"
+df = pd.read_csv(data_path)
 
 def search(query):
     matches = df["job_title"].fillna("").str.contains(
@@ -20,5 +20,7 @@ demo = gr.Interface(
     title="HR Candidate Search",
 )
 
-demo.launch()
+demo.launch(share=True)
+
+
 
