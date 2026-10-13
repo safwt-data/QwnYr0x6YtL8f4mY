@@ -10,6 +10,7 @@ df = pd.read_csv("data/clean_hr_data.csv").reset_index(drop=True)
 
 tokenizer = AutoTokenizer.from_pretrained("intfloat/e5-small-v2")
 model = AutoModel.from_pretrained("intfloat/e5-small-v2")
+# The model training is not seen by eval
 model.eval()
 
 
@@ -23,12 +24,13 @@ def embed(text):
 
     with torch.no_grad():
         tokens = model(**inputs).last_hidden_state
-
+#Retrieves the attention mask and adds a dimension at the end
     mask = inputs["attention_mask"].unsqueeze(-1)
     return ((tokens * mask).sum(1) / mask.sum(1)).numpy()
 
 
 # Calculate candidate embeddings once
+#Stacks them vertically into one array
 X_e5 = np.vstack([
     embed("passage: " + str(text))
     for text in df["clean_job_title"].fillna("")
@@ -37,8 +39,9 @@ X_e5 = np.vstack([
 
 def rank(query, starred):
     if not query.strip():
-        return pd.DataFrame(columns=["job_title", "score"])
+        return pd.DataFrame(columns=["clean_job_title", "score"])
 
+# Changes it into a one-dimensional array with flatten
     scores = cosine_similarity(
         X_e5,
         embed("query: " + query.strip()),
@@ -52,7 +55,7 @@ def rank(query, starred):
 
         scores = 0.6 * scores + 0.4 * star_scores
 
-    result = df[["job_title"]].copy()
+    result = df[["clean_job_title"]].copy()
     result["score"] = scores
 
     return result.sort_values("score", ascending=False).head(10)
@@ -62,7 +65,7 @@ def initial_search(query):
     top10 = rank(query, [])
 
     choices = [
-        (f"⭐ {position + 1}: {row['job_title']}", int(index))
+        (f"⭐ {position + 1}: {row['clean_job_title']}", int(index))
         for position, (index, row) in enumerate(top10.iterrows())
     ]
 
@@ -116,6 +119,7 @@ with gr.Blocks() as demo:
 
 css = """
 .gradio-container {
+    background-color: #eef2ff !important;
     max-width: 900px !important;
     margin: auto;
 }
@@ -133,10 +137,6 @@ button {
     border-radius: 12px !important;
 }
 """
-
-
-
-
 
 demo.launch(css=css)
 
