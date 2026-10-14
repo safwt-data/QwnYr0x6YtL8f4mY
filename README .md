@@ -31,7 +31,6 @@ An NLP portfolio project comparing seven text representation methods to rank HR-
 - [8. Gradio Application](#8-gradio-application)
 - [9. Local RAG Experiment](#9-local-rag-experiment)
 - [Bias, Limitations, and Next Steps](#bias-limitations-and-next-steps)
-- [How to Run](#how-to-run)
 - [Project Contribution](#project-contribution)
 - [Conclusion](#conclusion)
 
