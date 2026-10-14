@@ -218,7 +218,7 @@ Read my [project walkthrough on Medium](https://medium.com/@safwtsafwt19/buildin
 
 ## 9. Local RAG Experiment
 
-An optional experiment explores whether a small local language model can explain retrieved profiles. The prompt asks the model to answer using retrieved context and acknowledge uncertainty. The saved output nevertheless includes unsupported interpretations and exceeds the requested two-sentence limit.
+An optional experiment explores whether a small local language model can explain retrieved profiles. The prompt asks the model to answer using retrieved context and acknowledge uncertainty. The saved output nevertheless includes unsupported interpretations and exceeds the requested two-sentence limit. 
 
 This experiment highlights a practical boundary: retrieval and generation do not automatically produce reliable explanations. Short chunks can separate profile context, and a small model may infer facts absent from the source. The RAG chain also uses a separate retriever; it is not shown consuming the main ranker's exact top-three candidates.
 
