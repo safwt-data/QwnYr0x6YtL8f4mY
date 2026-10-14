@@ -212,6 +212,10 @@ The HR Candidate Finder prototype presents the workflow through:
 - Star-style checkboxes for selecting preferred profiles.
 - An adjusted top-10 table after feedback.
 
+## Project Article
+
+Read my [project walkthrough on Medium](https://medium.com/@safwtsafwt19/building-an-hr-candidate-finder-from-keyword-matching-to-semantic-search-f09b1b86a26d?sharedUserId=safwtsafwt19) for a step-by-step look at the vectorization methods, model comparison, starring mechanism, and project limitations.
+
 ## 9. Local RAG Experiment
 
 An optional experiment explores whether a small local language model can explain retrieved profiles. The prompt asks the model to answer using retrieved context and acknowledge uncertainty. The saved output nevertheless includes unsupported interpretations and exceeds the requested two-sentence limit.
