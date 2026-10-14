@@ -6,7 +6,7 @@ An NLP portfolio project comparing seven text representation methods to rank HR-
 
 <p align="center">
   <img src="https://img.shields.io/badge/Python-NLP-blue" alt="Python NLP">
-  <img src="https://img.shields.io/badge/Methods-7-purple" alt="Seven embedding methods">
+  <img src="https://img.shields.io/badge/Methods-7embedding methods-purple" alt="Seven embedding methods">
   <img src="https://img.shields.io/badge/Ranking-Cosine%20Similarity-orange" alt="Cosine similarity">
   <img src="https://img.shields.io/badge/Interface-Gradio-green" alt="Gradio interface">
   <img src="https://img.shields.io/badge/Feedback-Star%20Re--ranking-yellow" alt="Star re-ranking">
@@ -77,8 +77,6 @@ The notebooks document the preparation and ranking experiments. The screenshots 
 
 ## 1. Data Preparation
 
-The source contains profile IDs, job titles, locations, connection counts, and an unpopulated fit field.
-
 Preparation included:
 
 - Dropping the unused fit column.
@@ -113,8 +111,6 @@ A spaCy pipeline:
 3. Lemmatizes the remaining tokens.
 4. Converts them to lowercase.
 5. Joins them into a string for each vectorizer or model's own tokenizer.
-
-The processed data is saved as clean_hr_data.csv.
 
 This creates a consistent candidate representation across methods, but it also introduces a trade-off: aggressive cleaning may remove useful context for transformer models. Candidate text is cleaned while query strings are passed directly to the ranking functions, so words such as “seeking” may appear as “seek” in profiles but remain “seeking” in queries. A future comparison should test consistent light cleaning against the existing pipeline.
 
@@ -152,9 +148,9 @@ Higher similarity means closer text representations within that method. It is no
 
 Titles are shortened here for readability. The notebook outputs contain the corresponding cleaned profiles and scores.
 
-### Precision checks from saved outputs
+### Metrics checks from saved outputs 
 
-The following figures were reconstructed from the saved top-ranked row indices and the manual labels. They are checks of the recorded outputs, not a fresh execution of the models.
+Seven text representation methods were evaluated using Precision@5, Precision@10, Mean Reciprocal Rank (MRR), Average Precision (AP), and NDCG@10.
 
 | Method | Aspiring: P@5 | Aspiring: P@10 | Seeking: P@5 | Seeking: P@10 |
 |---|---:|---:|---:|---:|
@@ -166,11 +162,19 @@ The following figures were reconstructed from the saved top-ranked row indices a
 | E5 | 1.00 | 1.00 | 1.00 | 1.00 |
 | BGE | 1.00 | 1.00 | 1.00 | 1.00 |
 
-**P@5** is the proportion of the first five results labelled relevant; **P@10** uses the first ten. TF-IDF's saved thresholded outputs contain only eight and two results respectively, so comparable fixed-depth precision is not reported here.
+# Understanding the Metrics
 
-The labels describe broad HR relevance and are reused for both queries. They do not separately measure aspiring status, seniority, or active job-seeking intent. Consequently, several methods tie at perfect precision even when their ordering differs meaningfully. These results support the prototype's ability to retrieve HR-related text, but do not establish a universally best method.
+- Precision@5 / Precision@10: Proportion of relevant candidates within the first five or ten results.
+- MRR: Measures how early the first relevant candidate appears.
+- AP: Measures how consistently relevant candidates appear near the top across the full ranking.
+- NDCG@10: Evaluates the ordering of relevant candidates within the top ten results.
 
-The guide's full evaluation—**NDCG@10, MAP, MRR, P@5, and P@10 across all methods**—is not present in the supplied notebooks. Completing it requires full rankings and a clear query-specific labelling rubric. AP measures one query's full ranked list; MAP averages AP across queries.
+# Key Findings
+SBERT achieved the highest AP (0.995338), followed by E5 and BGE, indicating the strongest overall ordering of relevant candidates in this evaluation.
+
+All methods except BERT achieved perfect Precision@5, Precision@10, and NDCG@10. BERT returned four relevant candidates in the top five and seven in the top ten. Every method placed a relevant candidate first, resulting in an MRR of 1.00.
+
+The strong performance of BoW and TF-IDF shows that simple lexical methods remain competitive for this dataset. These results reflect the evaluated candidate set and relevance labels; testing on more queries and a larger dataset would help assess generalisation.
 
 ## 6. Filtering and Cut-off Selection
 
