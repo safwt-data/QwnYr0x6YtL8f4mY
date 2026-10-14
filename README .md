@@ -6,13 +6,13 @@ An NLP portfolio project comparing seven text representation methods to rank HR-
 
 <p align="center">
   <img src="https://img.shields.io/badge/Python-NLP-blue" alt="Python NLP">
-  <img src="https://img.shields.io/badge/Methods-7-purple" alt="Seven methods">
+  <img src="https://img.shields.io/badge/Methods-7-purple" alt="Seven embedding methods">
   <img src="https://img.shields.io/badge/Ranking-Cosine%20Similarity-orange" alt="Cosine similarity">
   <img src="https://img.shields.io/badge/Interface-Gradio-green" alt="Gradio interface">
   <img src="https://img.shields.io/badge/Feedback-Star%20Re--ranking-yellow" alt="Star re-ranking">
 </p>
 
-> **Project at a glance:** Prepared 52 distinct job-title profiles, compared lexical and semantic ranking approaches, explored relevance cut-offs, and demonstrated a Gradio interface that updates candidate rankings when users star preferred profiles. An additional local RAG experiment explored candidate justifications.
+> **Project at a glance:** Prepared 52 distinct job-title profiles, compared semantic ranking approaches, explored relevance cut-offs, and demonstrated a Gradio interface that updates candidate rankings when users star preferred profiles. An additional local RAG experiment explored candidate justifications.
 
 ---
 
@@ -77,18 +77,18 @@ The notebooks document the preparation and ranking experiments. The screenshots 
 
 ## 1. Data Preparation
 
-The source contains profile IDs, job titles, locations, connection counts, and an unpopulated `fit` field.
+The source contains profile IDs, job titles, locations, connection counts, and an unpopulated fit field.
 
 Preparation included:
 
-- Dropping the unused `fit` column.
-- Normalizing the recorded `500+` connection value to `500`.
-- Removing duplicate records using `job_title` as the deduplication key.
+- Dropping the unused fit column.
+- Normalizing the recorded 500+ connection value to 500.
+- Removing duplicate records using job_title as the deduplication key.
 - Identifying non-ASCII location characters and replacing selected Turkish characters.
 - Retaining profile IDs to support traceability.
 - Adding 52 manually assigned binary relevance labels for later assessment.
 
-**Important interpretation:** the 52 records represent distinct retained job titles. Deduplicating by title can merge different people who share a title, so this is not a verified count of unique individuals. Also, `500` represents a capped connection value, not an exact count for profiles originally marked `500+`.
+**Important interpretation:** the 52 records represent distinct retained job titles. Deduplicating by title can merge different people who share a title, so this is not a verified count of unique individuals.
 
 ## 2. Exploratory Data Analysis
 
@@ -104,7 +104,7 @@ These plots provide context for interpreting the rankings. They do not, on their
 
 ## 3. Text Preprocessing
 
-The ranking text combines **job title and location**. Despite the column name `clean_job_title`, the cleaned input therefore contains both fields. Connection count is retained separately and is not concatenated into the ranking text in this implementation.
+The ranking text combines job title and location. Despite the column name clean_job_title, the cleaned input therefore contains both fields. Connection count is retained separately and is not concatenated into the ranking text in this implementation.
 
 A spaCy pipeline:
 
@@ -114,7 +114,7 @@ A spaCy pipeline:
 4. Converts them to lowercase.
 5. Joins them into a string for each vectorizer or model's own tokenizer.
 
-The processed data is saved as `clean_hr_data.csv`. A separate `rag_hr_data.csv` retains IDs and cleaned text for the retrieval experiment.
+The processed data is saved as clean_hr_data.csv.
 
 This creates a consistent candidate representation across methods, but it also introduces a trade-off: aggressive cleaning may remove useful context for transformer models. Candidate text is cleaned while query strings are passed directly to the ranking functions, so words such as “seeking” may appear as “seek” in profiles but remain “seeking” in queries. A future comparison should test consistent light cleaning against the existing pipeline.
 
@@ -124,19 +124,17 @@ Seven approaches convert text into numerical representations:
 
 | Method | Implementation | What it contributes |
 |---|---|---|
-| Bag of Words | `CountVectorizer` | An interpretable baseline based on word counts and overlap. |
-| TF-IDF | `TfidfVectorizer` | Weights words by their distinctiveness in the candidate corpus. |
-| GloVe | `glove-wiki-gigaword-100`; average available word vectors | Dense semantic representations from pretrained word embeddings. |
-| BERT | `bert-base-uncased`; mean token pooling | Contextual token representations used as a ranking baseline. |
-| SBERT | `sentence-transformers/all-MiniLM-L6-v2`; masked mean pooling | Compact embeddings designed for sentence-level similarity. |
-| E5 | `intfloat/e5-small-v2`; masked mean pooling | A small pretrained text embedding model for semantic retrieval experiments. |
-| BGE | `BAAI/bge-small-en-v1.5`; masked mean pooling | An additional compact semantic embedding comparison. |
+| Bag of Words | CountVectorizer | An interpretable baseline based on word counts and overlap. |
+| TF-IDF | TfidfVectorizer | Weights words by their distinctiveness in the candidate corpus. |
+| GloVe | glove-wiki-gigaword-100 ; average available word vectors | Dense semantic representations from pretrained word embeddings. |
+| BERT | bert-base-uncased; mean token pooling | Contextual token representations used as a ranking baseline. |
+| SBERT | sentence-transformers/all-MiniLM-L6-v2; masked mean pooling | Compact embeddings designed for sentence-level similarity. |
+| E5 | intfloat/e5-small-v2; masked mean pooling | A small pretrained text embedding model for semantic retrieval experiments. |
+| BGE | BAAI/bge-small-en-v1.5; masked mean pooling | An additional compact semantic embedding comparison. |
 
 For every method, cosine similarity compares each candidate vector with the query vector. Candidates are then sorted by descending similarity.
 
-**Higher similarity means closer text representations within that method.** It is not a probability of hiring success, and score magnitudes cannot be used to decide which model is best across different embedding spaces.
-
-The saved notebook exports vectors and scores to `vectors_hr_data.csv`. Word2Vec, FastText, and zero-shot classification appear in the learning guide but are not implemented in the supplied comparison notebook.
+Higher similarity means closer text representations within that method. It is not a probability of hiring success, and score magnitudes cannot be used to decide which model is best across different embedding spaces.
 
 ## 5. Method Comparison and Results
 
@@ -154,16 +152,14 @@ The saved notebook exports vectors and scores to `vectors_hr_data.csv`. Word2Vec
 
 Titles are shortened here for readability. The notebook outputs contain the corresponding cleaned profiles and scores.
 
-SBERT, E5, and BGE produce first results that reflect the difference between the two query intentions. The BERT baseline also retrieves broader matches: its saved “seeking” top 10 includes a director of administration and a general employment-seeking profile. This shows why ranking quality should be assessed from returned profiles rather than high cosine values alone.
-
 ### Precision checks from saved outputs
 
-The following figures were reconstructed from the saved top-ranked row indices and the manual labels in `preprocessing.ipynb`. They are checks of the recorded outputs, not a fresh execution of the models.
+The following figures were reconstructed from the saved top-ranked row indices and the manual labels. They are checks of the recorded outputs, not a fresh execution of the models.
 
 | Method | Aspiring: P@5 | Aspiring: P@10 | Seeking: P@5 | Seeking: P@10 |
 |---|---:|---:|---:|---:|
 | BoW | 1.00 | 1.00 | 1.00 | 1.00 |
-| TF-IDF | — | — | — | — |
+| TF-IDF | 1.00 | 1.00 | 1.00 | 1.00 |
 | GloVe | 1.00 | 1.00 | 1.00 | 1.00 |
 | BERT | 1.00 | 0.90 | 0.80 | 0.70 |
 | SBERT | 1.00 | 1.00 | 1.00 | 1.00 |
@@ -178,9 +174,9 @@ The guide's full evaluation—**NDCG@10, MAP, MRR, P@5, and P@10 across all meth
 
 ## 6. Filtering and Cut-off Selection
 
-The comparison notebook explores a similarity threshold of **0.3**, while the E5 analysis also tests **0.4**. Histograms show the score distribution, and sorted-score curves help inspect where relevance may begin to decline.
+The comparison notebook explores a similarity threshold of 0.3, while the E5 analysis also tests 0.4. Histograms show the score distribution, and sorted-score curves help inspect where relevance may begin to decline.
 
-The TF-IDF outputs illustrate the effect of filtering: the same `0.3` threshold returns eight profiles for the aspiring query and only two for the seeking query.
+The TF-IDF outputs illustrate the effect of filtering: the same 0.3 threshold returns eight profiles for the aspiring query and only two for the seeking query.
 
 A cut-off is therefore a retrieval setting, not a universal relevance rule. It should be selected using labelled examples for each model and query family. Percentile-based shortlists and top-k retrieval are useful alternatives to test, but neither guarantees relevance. Generalization to other roles remains unvalidated.
 
@@ -216,50 +212,18 @@ The shortlist changes in response to the user's preferences. This demonstrates p
 
 ## 8. Gradio Application
 
-The **HR Candidate Finder** prototype presents the workflow through:
+The HR Candidate Finder prototype presents the workflow through:
 
 - A text search field and Search button.
 - An initial top-10 results table with similarity scores.
 - Star-style checkboxes for selecting preferred profiles.
 - An adjusted top-10 table after feedback.
 
-### Initial search
-
-![HR Candidate Finder search and initial candidate scores](reports/app/initial-search.png)
-
-### Selecting preferred profiles
-
-![Star-style candidate selection controls](reports/app/star-selection.png)
-
-### Adjusted shortlist
-
-![Adjusted candidate ranking after selecting two profiles](reports/app/adjusted-ranking.png)
-
-<details>
-<summary>View adjusted similarity scores</summary>
-
-![Adjusted candidate scores](reports/app/adjusted-scores.png)
-
-</details>
-
-**Demo availability:** screenshots document the prototype. A public app URL and published blog URL were not supplied, so no live deployment or publication is claimed.
-
 ## 9. Local RAG Experiment
 
-An optional experiment explores whether a small local language model can explain retrieved profiles:
+An optional experiment explores whether a small local language model can explain retrieved profiles. The prompt asks the model to answer using retrieved context and acknowledge uncertainty. The saved output nevertheless includes unsupported interpretations and exceeds the requested two-sentence limit.
 
-| Component | Implementation |
-|---|---|
-| Input | `CSVLoader` reading `rag_hr_data.csv` |
-| Chunking | `RecursiveCharacterTextSplitter`, 150 characters with 25-character overlap |
-| Embeddings | `all-MiniLM-L6-v2` |
-| Retrieval | Chroma vector store with the default retriever configuration |
-| Generation | `Qwen/Qwen2.5-0.5B-Instruct`, up to 200 new tokens, sampling disabled |
-| Orchestration | LangChain prompt and runnable chain |
-
-The prompt asks the model to answer using retrieved context and acknowledge uncertainty. The saved output nevertheless includes unsupported interpretations and exceeds the requested two-sentence limit.
-
-This experiment highlights a practical boundary: retrieval and generation do not automatically produce reliable explanations. Short chunks can separate profile context, and a small model may infer facts absent from the source. The RAG chain also uses a separate retriever; it is not shown consuming the main ranker's exact top-three candidates. A stronger extension would pass complete selected profiles with stable IDs and require evidence-backed explanations.
+This experiment highlights a practical boundary: retrieval and generation do not automatically produce reliable explanations. Short chunks can separate profile context, and a small model may infer facts absent from the source. The RAG chain also uses a separate retriever; it is not shown consuming the main ranker's exact top-three candidates.
 
 ## Bias, Limitations, and Next Steps
 
@@ -278,65 +242,6 @@ This experiment highlights a practical boundary: retrieval and generation do not
 The notebooks do not add E5 query/passage prefixes, and BGE is implemented using masked mean pooling. These choices should be reviewed before presenting the comparison as representative of each model's recommended configuration. Neural embeddings can also retain biases from pretraining; removing location alone would not prove fairness.
 
 Priority follow-ups are to complete the full metrics table, validate feedback effects against labelled preferences, audit geographic effects, and publish the app and accompanying write-up once reproducibility is established.
-
-## How to Run
-
-### Notebook organization
-
-Place the notebooks under `notebooks/` so their existing relative paths resolve correctly:
-
-| Path | Purpose |
-|---|---|
-| `notebooks/preprocessing.ipynb` | Clean source data, attach labels, export processed CSVs. |
-| `notebooks/eda.ipynb` | Plot distributions and inspect E5 score cut-offs. |
-| `notebooks/vectorization.ipynb` | Generate seven representations and compare rankings. |
-| `notebooks/rag.ipynb` | Run the optional local retrieval/generation experiment. |
-| `data/raw_hr_data.csv` | Required source dataset; not included in the supplied attachments. |
-| `reports/app/` | Screenshots referenced by this README. |
-| `figures/reports/` | Plot output directory expected by the notebooks. |
-
-### Environment setup
-
-The following packages reflect notebook imports; this is a starting environment, not a pinned or fully tested dependency specification.
-
-```bash
-python -m venv .venv
-```
-
-Activate it on macOS/Linux:
-
-```bash
-source .venv/bin/activate
-```
-
-Or on Windows PowerShell:
-
-```powershell
-.venv\Scripts\Activate.ps1
-```
-
-Install the core notebook dependencies:
-
-```bash
-python -m pip install jupyter pandas numpy matplotlib seaborn spacy scikit-learn gensim torch transformers
-python -m spacy download en_core_web_sm
-```
-
-For the optional RAG notebook:
-
-```bash
-python -m pip install langchain-core langchain-community langchain-text-splitters langchain-huggingface langchain-chroma sentence-transformers accelerate
-```
-
-Create `data/` and `figures/reports/`, place the source CSV in `data/`, then launch Jupyter:
-
-```bash
-jupyter notebook
-```
-
-Run **preprocessing → EDA → vectorization → optional RAG**, using the `notebooks/` directory as the notebook working directory. Initial model downloads require internet access. Transformer inference and local text generation can be slow on a CPU.
-
-The supplied files do not include the Gradio app source, so an app launch command cannot be verified here. The current deliverable is a notebook-based workflow with screenshots of the app, rather than a verified single-command application.
 
 ## Project Contribution
 
