@@ -180,25 +180,13 @@ The strong performance of BoW and TF-IDF shows that simple lexical methods remai
 
 ## 6. Filtering and Cut-off Selection
 
-The comparison notebook explores a similarity threshold of 0.3, while the E5 analysis also tests 0.4. Histograms show the score distribution, and sorted-score curves help inspect where relevance may begin to decline.
-
-The TF-IDF outputs illustrate the effect of filtering: the same 0.3 threshold returns eight profiles for the aspiring query and only two for the seeking query.
+The comparison notebook explores a similarity threshold of 0.3, while the E5 analysis also tests 0.4. Histograms show the score distribution, and sorted-score curves help inspect where relevance may begin to decline. The TF-IDF outputs illustrate the effect of filtering: the same 0.3 threshold returns eight profiles for the aspiring query and only two for the seeking query.
 
 A cut-off is therefore a retrieval setting, not a universal relevance rule. It should be selected using labelled examples for each model and query family. Percentile-based shortlists and top-k retrieval are useful alternatives to test, but neither guarantees relevance. Generalization to other roles remains unvalidated.
 
 ## 7. Star-based Re-ranking
 
-The interface lets users select preferred profiles from the initial top 10. The guide's feedback mechanism combines the original query with a positive anchor formed from the selected profiles:
-
-```math
-c_{+} = \frac{1}{|S|}\sum_{j\in S}e_j
-```
-
-```math
-\operatorname{score}(i)=\alpha\,\cos(e_i,q)+(1-\alpha)\,\cos(e_i,c_{+})
-```
-
-Here, `e_i` is a candidate embedding, `q` is the query embedding, `S` is the set of starred profiles, and `α = 0.5` gives equal weight to query relevance and feedback. With one star, the anchor is that profile's embedding; with multiple stars, it is their average. This is a positive relevance-feedback approach similar in spirit to Rocchio, without retraining the embedding model.
+The interface lets users select preferred profiles from the initial top 10. The guide's feedback mechanism combines the original query with a positive anchor formed from the selected profiles.
 
 The screenshots demonstrate adjusted results after two profiles are selected. The formula describes the intended mechanism; the app source would be needed to verify its exact implementation.
 
@@ -244,10 +232,6 @@ This experiment highlights a practical boundary: retrieval and generation do not
 | Aggressive candidate cleaning | Context and query alignment may be lost. | Compare light cleaning with the current spaCy pipeline. |
 | Feedback reflects user preferences | Stars may amplify bias rather than reduce it. | Keep feedback transparent and audit changes in shortlist composition. |
 | Missing app source and full metrics | Screenshots demonstrate behavior but do not provide reproducible deployment. | Add app code, pinned dependencies, complete evaluation, and a tested launch command. |
-
-The notebooks do not add E5 query/passage prefixes, and BGE is implemented using masked mean pooling. These choices should be reviewed before presenting the comparison as representative of each model's recommended configuration. Neural embeddings can also retain biases from pretraining; removing location alone would not prove fairness.
-
-Priority follow-ups are to complete the full metrics table, validate feedback effects against labelled preferences, audit geographic effects, and publish the app and accompanying write-up once reproducibility is established.
 
 ## Project Contribution
 
