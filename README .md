@@ -152,15 +152,17 @@ Titles are shortened here for readability. The notebook outputs contain the corr
 
 Seven text representation methods were evaluated using Precision@5, Precision@10, Mean Reciprocal Rank (MRR), Average Precision (AP), and NDCG@10.
 
-| Method | Aspiring: P@5 | Aspiring: P@10 | Seeking: P@5 | Seeking: P@10 |
-|---|---:|---:|---:|---:|
-| BoW | 1.00 | 1.00 | 1.00 | 1.00 |
-| TF-IDF | 1.00 | 1.00 | 1.00 | 1.00 |
-| GloVe | 1.00 | 1.00 | 1.00 | 1.00 |
-| BERT | 1.00 | 0.90 | 0.80 | 0.70 |
-| SBERT | 1.00 | 1.00 | 1.00 | 1.00 |
-| E5 | 1.00 | 1.00 | 1.00 | 1.00 |
-| BGE | 1.00 | 1.00 | 1.00 | 1.00 |
+The following figures summarise the recorded ranking evaluation for each method.
+
+| Method | P@5 | P@10 | MRR | AP | NDCG@10 |
+|---|---:|---:|---:|---:|---:|
+| BoW | 1.00 | 1.00 | 1.00 | 0.977855 | 1.000000 |
+| TF-IDF | 1.00 | 1.00 | 1.00 | 0.977855 | 1.000000 |
+| GloVe | 1.00 | 1.00 | 1.00 | 0.955214 | 1.000000 |
+| BERT | 0.80 | 0.70 | 1.00 | 0.831193 | 0.753449 |
+| SBERT | 1.00 | 1.00 | 1.00 | **0.995338** | 1.000000 |
+| E5 | 1.00 | 1.00 | 1.00 | 0.990001 | 1.000000 |
+| BGE | 1.00 | 1.00 | 1.00 | 0.987924 | 1.000000 |
 
 # Understanding the Metrics
 
