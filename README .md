@@ -1,0 +1,362 @@
+<h1 align="center">Potential Talents · HR Candidate Finder</h1>
+
+<p align="center">
+An NLP portfolio project comparing seven text representation methods to rank HR-related profiles and refine candidate discovery through recruiter feedback.
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Python-NLP-blue" alt="Python NLP">
+  <img src="https://img.shields.io/badge/Methods-7-purple" alt="Seven methods">
+  <img src="https://img.shields.io/badge/Ranking-Cosine%20Similarity-orange" alt="Cosine similarity">
+  <img src="https://img.shields.io/badge/Interface-Gradio-green" alt="Gradio interface">
+  <img src="https://img.shields.io/badge/Feedback-Star%20Re--ranking-yellow" alt="Star re-ranking">
+</p>
+
+> **Project at a glance:** Prepared 52 distinct job-title profiles, compared lexical and semantic ranking approaches, explored relevance cut-offs, and demonstrated a Gradio interface that updates candidate rankings when users star preferred profiles. An additional local RAG experiment explored candidate justifications.
+
+---
+
+## Table of Contents
+
+- [Project Overview](#project-overview)
+- [Business Questions](#business-questions)
+- [Project Workflow](#project-workflow)
+- [1. Data Preparation](#1-data-preparation)
+- [2. Exploratory Data Analysis](#2-exploratory-data-analysis)
+- [3. Text Preprocessing](#3-text-preprocessing)
+- [4. Vectorization and Ranking](#4-vectorization-and-ranking)
+- [5. Method Comparison and Results](#5-method-comparison-and-results)
+- [6. Filtering and Cut-off Selection](#6-filtering-and-cut-off-selection)
+- [7. Star-based Re-ranking](#7-star-based-re-ranking)
+- [8. Gradio Application](#8-gradio-application)
+- [9. Local RAG Experiment](#9-local-rag-experiment)
+- [Bias, Limitations, and Next Steps](#bias-limitations-and-next-steps)
+- [How to Run](#how-to-run)
+- [Project Contribution](#project-contribution)
+- [Conclusion](#conclusion)
+
+---
+
+## Project Overview
+
+Recruiters often search for candidates using short phrases, while profiles describe experience, interests, and career goals in different ways. Exact keyword matching can miss related language; semantic similarity can retrieve broader matches but also introduce irrelevant results.
+
+This project investigates that trade-off using two queries:
+
+- **“aspiring human resources”**
+- **“seeking human resources”**
+
+The objective is to support candidate discovery: rank profiles by relevance, let the recruiter inspect the shortlist, and use starred profiles to refine the results. Similarity is a measure of textual relevance—not evidence that a person is qualified or suitable for hiring.
+
+The implementation uses pretrained models for inference rather than training a neural network from scratch. It combines data preparation, exploratory analysis, comparative NLP experiments, and a user-facing prototype.
+
+## Business Questions
+
+| Question | Project response |
+|---|---|
+| How robust is the ranking approach? | Compare seven methods across two queries, inspect returned profiles, and assess the limits of a small, manually labelled sample. |
+| How does starring change the shortlist? | Blend the original search signal with similarity to selected profiles and compare the initial and adjusted results. |
+| How can irrelevant profiles be filtered? | Explore similarity thresholds alongside ranked-score and distribution plots. |
+| Can one cut-off generalize to other roles? | Treat thresholds as model- and query-specific; broader validation is needed before reuse. |
+| How can human bias be reduced? | Examine representation in the data, recognize location leakage, and propose job-related inputs and ranking audits. |
+
+## Project Workflow
+
+| Stage | Main activity | Output |
+|---|---|---|
+| 1. Prepare | Inspect records, remove duplicate titles, clean fields | 52 retained profiles |
+| 2. Explore | Examine title length, location, and connections | Distribution plots |
+| 3. Process text | Combine title and location, tokenize, lemmatize, lowercase | Clean text and manual relevance labels |
+| 4. Compare representations | BoW, TF-IDF, GloVe, BERT, SBERT, E5, BGE | Candidate vectors and similarity scores |
+| 5. Review rankings | Compare top results for two search queries | Method comparison and relevance checks |
+| 6. Explore filtering | Inspect score distributions and ranked curves | Candidate cut-off experiments |
+| 7. Refine with feedback | Select preferred profiles in the interface | Adjusted top-10 shortlist |
+| 8. Extend | Test retrieval with a small local language model | Experimental candidate explanations |
+
+The notebooks document the preparation and ranking experiments. The screenshots demonstrate the separate app prototype; its source is not included in the notebook set documented here.
+
+## 1. Data Preparation
+
+The source contains profile IDs, job titles, locations, connection counts, and an unpopulated `fit` field.
+
+Preparation included:
+
+- Dropping the unused `fit` column.
+- Normalizing the recorded `500+` connection value to `500`.
+- Removing duplicate records using `job_title` as the deduplication key.
+- Identifying non-ASCII location characters and replacing selected Turkish characters.
+- Retaining profile IDs to support traceability.
+- Adding 52 manually assigned binary relevance labels for later assessment.
+
+**Important interpretation:** the 52 records represent distinct retained job titles. Deduplicating by title can merge different people who share a title, so this is not a verified count of unique individuals. Also, `500` represents a capped connection value, not an exact count for profiles originally marked `500+`.
+
+## 2. Exploratory Data Analysis
+
+EDA examined three aspects of the dataset:
+
+| Analysis | Purpose |
+|---|---|
+| Job-title character length | Understand how much text each profile provides. |
+| Location distribution | Identify geographic concentration and representation differences. |
+| Connection distribution | Inspect the spread of connection counts and the capped category. |
+
+These plots provide context for interpreting the rankings. They do not, on their own, establish whether rankings are biased; that requires comparing model outputs across groups.
+
+## 3. Text Preprocessing
+
+The ranking text combines **job title and location**. Despite the column name `clean_job_title`, the cleaned input therefore contains both fields. Connection count is retained separately and is not concatenated into the ranking text in this implementation.
+
+A spaCy pipeline:
+
+1. Tokenizes each profile's combined text.
+2. Removes punctuation and stopwords.
+3. Lemmatizes the remaining tokens.
+4. Converts them to lowercase.
+5. Joins them into a string for each vectorizer or model's own tokenizer.
+
+The processed data is saved as `clean_hr_data.csv`. A separate `rag_hr_data.csv` retains IDs and cleaned text for the retrieval experiment.
+
+This creates a consistent candidate representation across methods, but it also introduces a trade-off: aggressive cleaning may remove useful context for transformer models. Candidate text is cleaned while query strings are passed directly to the ranking functions, so words such as “seeking” may appear as “seek” in profiles but remain “seeking” in queries. A future comparison should test consistent light cleaning against the existing pipeline.
+
+## 4. Vectorization and Ranking
+
+Seven approaches convert text into numerical representations:
+
+| Method | Implementation | What it contributes |
+|---|---|---|
+| Bag of Words | `CountVectorizer` | An interpretable baseline based on word counts and overlap. |
+| TF-IDF | `TfidfVectorizer` | Weights words by their distinctiveness in the candidate corpus. |
+| GloVe | `glove-wiki-gigaword-100`; average available word vectors | Dense semantic representations from pretrained word embeddings. |
+| BERT | `bert-base-uncased`; mean token pooling | Contextual token representations used as a ranking baseline. |
+| SBERT | `sentence-transformers/all-MiniLM-L6-v2`; masked mean pooling | Compact embeddings designed for sentence-level similarity. |
+| E5 | `intfloat/e5-small-v2`; masked mean pooling | A small pretrained text embedding model for semantic retrieval experiments. |
+| BGE | `BAAI/bge-small-en-v1.5`; masked mean pooling | An additional compact semantic embedding comparison. |
+
+For every method, cosine similarity compares each candidate vector with the query vector. Candidates are then sorted by descending similarity.
+
+**Higher similarity means closer text representations within that method.** It is not a probability of hiring success, and score magnitudes cannot be used to decide which model is best across different embedding spaces.
+
+The saved notebook exports vectors and scores to `vectors_hr_data.csv`. Word2Vec, FastText, and zero-shot classification appear in the learning guide but are not implemented in the supplied comparison notebook.
+
+## 5. Method Comparison and Results
+
+### What the saved rankings show
+
+| Method | First result for “aspiring human resources” | First result for “seeking human resources” |
+|---|---|---|
+| BoW | Aspiring HR Manager, seeking internships | Aspiring HR Manager, seeking internships |
+| TF-IDF | Aspiring HR Manager, seeking internships | Aspiring HR Manager, seeking internships |
+| GloVe | Aspiring HR Manager, seeking internships | Aspiring HR Manager, seeking internships |
+| BERT | Seeking HR Opportunities | Seeking HR Opportunities |
+| SBERT | Aspiring HR Professional | Seeking HR Position |
+| E5 | Aspiring HR Specialist | Seeking HR Opportunities |
+| BGE | Aspiring HR Professional | Seeking HR Opportunities |
+
+Titles are shortened here for readability. The notebook outputs contain the corresponding cleaned profiles and scores.
+
+SBERT, E5, and BGE produce first results that reflect the difference between the two query intentions. The BERT baseline also retrieves broader matches: its saved “seeking” top 10 includes a director of administration and a general employment-seeking profile. This shows why ranking quality should be assessed from returned profiles rather than high cosine values alone.
+
+### Precision checks from saved outputs
+
+The following figures were reconstructed from the saved top-ranked row indices and the manual labels in `preprocessing.ipynb`. They are checks of the recorded outputs, not a fresh execution of the models.
+
+| Method | Aspiring: P@5 | Aspiring: P@10 | Seeking: P@5 | Seeking: P@10 |
+|---|---:|---:|---:|---:|
+| BoW | 1.00 | 1.00 | 1.00 | 1.00 |
+| TF-IDF | — | — | — | — |
+| GloVe | 1.00 | 1.00 | 1.00 | 1.00 |
+| BERT | 1.00 | 0.90 | 0.80 | 0.70 |
+| SBERT | 1.00 | 1.00 | 1.00 | 1.00 |
+| E5 | 1.00 | 1.00 | 1.00 | 1.00 |
+| BGE | 1.00 | 1.00 | 1.00 | 1.00 |
+
+**P@5** is the proportion of the first five results labelled relevant; **P@10** uses the first ten. TF-IDF's saved thresholded outputs contain only eight and two results respectively, so comparable fixed-depth precision is not reported here.
+
+The labels describe broad HR relevance and are reused for both queries. They do not separately measure aspiring status, seniority, or active job-seeking intent. Consequently, several methods tie at perfect precision even when their ordering differs meaningfully. These results support the prototype's ability to retrieve HR-related text, but do not establish a universally best method.
+
+The guide's full evaluation—**NDCG@10, MAP, MRR, P@5, and P@10 across all methods**—is not present in the supplied notebooks. Completing it requires full rankings and a clear query-specific labelling rubric. AP measures one query's full ranked list; MAP averages AP across queries.
+
+## 6. Filtering and Cut-off Selection
+
+The comparison notebook explores a similarity threshold of **0.3**, while the E5 analysis also tests **0.4**. Histograms show the score distribution, and sorted-score curves help inspect where relevance may begin to decline.
+
+The TF-IDF outputs illustrate the effect of filtering: the same `0.3` threshold returns eight profiles for the aspiring query and only two for the seeking query.
+
+A cut-off is therefore a retrieval setting, not a universal relevance rule. It should be selected using labelled examples for each model and query family. Percentile-based shortlists and top-k retrieval are useful alternatives to test, but neither guarantees relevance. Generalization to other roles remains unvalidated.
+
+## 7. Star-based Re-ranking
+
+The interface lets users select preferred profiles from the initial top 10. The guide's feedback mechanism combines the original query with a positive anchor formed from the selected profiles:
+
+```math
+c_{+} = \frac{1}{|S|}\sum_{j\in S}e_j
+```
+
+```math
+\operatorname{score}(i)=\alpha\,\cos(e_i,q)+(1-\alpha)\,\cos(e_i,c_{+})
+```
+
+Here, `e_i` is a candidate embedding, `q` is the query embedding, `S` is the set of starred profiles, and `α = 0.5` gives equal weight to query relevance and feedback. With one star, the anchor is that profile's embedding; with multiple stars, it is their average. This is a positive relevance-feedback approach similar in spirit to Rocchio, without retraining the embedding model.
+
+The screenshots demonstrate adjusted results after two profiles are selected. The formula describes the intended mechanism; the app source would be needed to verify its exact implementation.
+
+### Before and after feedback
+
+In the captured “Human resources” search, the user selects an HR staffing/recruiting profile and an aspiring HR professional profile.
+
+| Profile | Initial rank | Adjusted rank |
+|---|---:|---:|
+| HR Staffing and Recruiting Professional | 1 | 1 |
+| Aspiring HR Professional — inclusive work environments | 2 | 2 |
+| Aspiring HR Professional — team-focused | 8 | 4 |
+| HR Professional — Greater Boston | 10 | 5 |
+| Aspiring HR Manager — graduating 2020 | 4 | 10 |
+
+The shortlist changes in response to the user's preferences. This demonstrates personalization, not a measured improvement in hiring outcomes. Starring can also reinforce a user's existing preferences, so the adjusted ranking still needs review.
+
+## 8. Gradio Application
+
+The **HR Candidate Finder** prototype presents the workflow through:
+
+- A text search field and Search button.
+- An initial top-10 results table with similarity scores.
+- Star-style checkboxes for selecting preferred profiles.
+- An adjusted top-10 table after feedback.
+
+### Initial search
+
+![HR Candidate Finder search and initial candidate scores](reports/app/initial-search.png)
+
+### Selecting preferred profiles
+
+![Star-style candidate selection controls](reports/app/star-selection.png)
+
+### Adjusted shortlist
+
+![Adjusted candidate ranking after selecting two profiles](reports/app/adjusted-ranking.png)
+
+<details>
+<summary>View adjusted similarity scores</summary>
+
+![Adjusted candidate scores](reports/app/adjusted-scores.png)
+
+</details>
+
+**Demo availability:** screenshots document the prototype. A public app URL and published blog URL were not supplied, so no live deployment or publication is claimed.
+
+## 9. Local RAG Experiment
+
+An optional experiment explores whether a small local language model can explain retrieved profiles:
+
+| Component | Implementation |
+|---|---|
+| Input | `CSVLoader` reading `rag_hr_data.csv` |
+| Chunking | `RecursiveCharacterTextSplitter`, 150 characters with 25-character overlap |
+| Embeddings | `all-MiniLM-L6-v2` |
+| Retrieval | Chroma vector store with the default retriever configuration |
+| Generation | `Qwen/Qwen2.5-0.5B-Instruct`, up to 200 new tokens, sampling disabled |
+| Orchestration | LangChain prompt and runnable chain |
+
+The prompt asks the model to answer using retrieved context and acknowledge uncertainty. The saved output nevertheless includes unsupported interpretations and exceeds the requested two-sentence limit.
+
+This experiment highlights a practical boundary: retrieval and generation do not automatically produce reliable explanations. Short chunks can separate profile context, and a small model may infer facts absent from the source. The RAG chain also uses a separate retriever; it is not shown consuming the main ranker's exact top-three candidates. A stronger extension would pass complete selected profiles with stable IDs and require evidence-backed explanations.
+
+## Bias, Limitations, and Next Steps
+
+| Limitation | Implication | Next step |
+|---|---|---|
+| Small sample and two queries | Limited evidence of robustness beyond HR searches. | Evaluate more roles, query variants, and independent profiles. |
+| Broad manual binary labels | Strong HR relevance can conceal weak seniority or intent matching. | Use query-specific, graded labels and independent review. |
+| Location included in embeddings | Geography can influence similarity even without an explicit location filter. | Compare title-only inputs with title-plus-location rankings. |
+| Connection distribution inspected only | EDA does not establish whether rankings correlate with network size. | Audit score and rank relationships with connection count. |
+| Title-based deduplication | Different people sharing a title may be removed. | Deduplicate using stable person IDs and verified record rules. |
+| Nonstandard model input and pooling choices | Current results are implementation-specific baselines. | Verify each model's prescribed prefixes, pooling, and inference settings, then rerun comparisons. |
+| Aggressive candidate cleaning | Context and query alignment may be lost. | Compare light cleaning with the current spaCy pipeline. |
+| Feedback reflects user preferences | Stars may amplify bias rather than reduce it. | Keep feedback transparent and audit changes in shortlist composition. |
+| Missing app source and full metrics | Screenshots demonstrate behavior but do not provide reproducible deployment. | Add app code, pinned dependencies, complete evaluation, and a tested launch command. |
+
+The notebooks do not add E5 query/passage prefixes, and BGE is implemented using masked mean pooling. These choices should be reviewed before presenting the comparison as representative of each model's recommended configuration. Neural embeddings can also retain biases from pretraining; removing location alone would not prove fairness.
+
+Priority follow-ups are to complete the full metrics table, validate feedback effects against labelled preferences, audit geographic effects, and publish the app and accompanying write-up once reproducibility is established.
+
+## How to Run
+
+### Notebook organization
+
+Place the notebooks under `notebooks/` so their existing relative paths resolve correctly:
+
+| Path | Purpose |
+|---|---|
+| `notebooks/preprocessing.ipynb` | Clean source data, attach labels, export processed CSVs. |
+| `notebooks/eda.ipynb` | Plot distributions and inspect E5 score cut-offs. |
+| `notebooks/vectorization.ipynb` | Generate seven representations and compare rankings. |
+| `notebooks/rag.ipynb` | Run the optional local retrieval/generation experiment. |
+| `data/raw_hr_data.csv` | Required source dataset; not included in the supplied attachments. |
+| `reports/app/` | Screenshots referenced by this README. |
+| `figures/reports/` | Plot output directory expected by the notebooks. |
+
+### Environment setup
+
+The following packages reflect notebook imports; this is a starting environment, not a pinned or fully tested dependency specification.
+
+```bash
+python -m venv .venv
+```
+
+Activate it on macOS/Linux:
+
+```bash
+source .venv/bin/activate
+```
+
+Or on Windows PowerShell:
+
+```powershell
+.venv\Scripts\Activate.ps1
+```
+
+Install the core notebook dependencies:
+
+```bash
+python -m pip install jupyter pandas numpy matplotlib seaborn spacy scikit-learn gensim torch transformers
+python -m spacy download en_core_web_sm
+```
+
+For the optional RAG notebook:
+
+```bash
+python -m pip install langchain-core langchain-community langchain-text-splitters langchain-huggingface langchain-chroma sentence-transformers accelerate
+```
+
+Create `data/` and `figures/reports/`, place the source CSV in `data/`, then launch Jupyter:
+
+```bash
+jupyter notebook
+```
+
+Run **preprocessing → EDA → vectorization → optional RAG**, using the `notebooks/` directory as the notebook working directory. Initial model downloads require internet access. Transformer inference and local text generation can be slow on a CPU.
+
+The supplied files do not include the Gradio app source, so an app launch command cannot be verified here. The current deliverable is a notebook-based workflow with screenshots of the app, rather than a verified single-command application.
+
+## Project Contribution
+
+My contribution covered the analytical workflow and its translation into a usable candidate-discovery prototype:
+
+- **Problem framing:** translated a recruitment search task into query-to-profile ranking.
+- **Data preparation:** cleaned profile fields, handled repeated titles, and created traceable processed datasets.
+- **Exploratory analysis:** examined text length, geographic representation, and connection distributions.
+- **NLP implementation:** compared seven approaches from sparse word counts to pretrained contextual embeddings.
+- **Evaluation:** inspected ranked profiles for two query intentions and created manual relevance labels.
+- **Decision support:** explored filtering thresholds and score distributions rather than treating similarity as a hiring decision.
+- **Interface design:** demonstrated search, profile selection, and adjusted rankings in a Gradio prototype.
+- **Experimentation:** built a separate local RAG workflow and identified limits in generated candidate explanations.
+
+The project demonstrates practical work with **Python, pandas, spaCy, scikit-learn, Gensim, PyTorch, Hugging Face Transformers, Gradio, LangChain, and Chroma**, alongside the judgment needed to interpret results and communicate their limits.
+
+## Conclusion
+
+Potential Talents turns a recruitment search question into a structured NLP workflow: prepare profiles, compare representations, inspect rankings, explore cut-offs, and refine a shortlist through user feedback.
+
+The saved experiments show that multiple approaches retrieve HR-related profiles effectively under the project's manual labels, while their ordering and sensitivity to search intent differ. The app screenshots make the feedback mechanism visible, and the RAG experiment adds a useful lesson about the difference between retrieving relevant text and generating trustworthy explanations.
+
+For hiring managers and recruiters, this project demonstrates my ability to connect **business needs, data preparation, NLP implementation, evaluation, and interface design**. Its value lies in both building a working analytical prototype and explaining what the evidence supports, what remains uncertain, and how the solution should be strengthened before wider use.
