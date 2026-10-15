@@ -6,7 +6,6 @@ An NLP portfolio project comparing seven text representation methods to rank HR-
 
 <p align="center">
   <img src="https://img.shields.io/badge/Python-NLP-blue" alt="Python NLP">
-  <img src="https://img.shields.io/badge/Methods-7embedding methods-purple" alt="Seven embedding methods">
   <img src="https://img.shields.io/badge/Ranking-Cosine%20Similarity-orange" alt="Cosine similarity">
   <img src="https://img.shields.io/badge/Interface-Gradio-green" alt="Gradio interface">
   <img src="https://img.shields.io/badge/Feedback-Star%20Re--ranking-yellow" alt="Star re-ranking">
