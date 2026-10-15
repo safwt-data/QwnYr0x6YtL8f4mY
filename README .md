@@ -251,6 +251,8 @@ My contribution covered the analytical workflow and its translation into a usabl
 
 The project demonstrates practical work with **Python, pandas, spaCy, scikit-learn, Gensim, PyTorch, Hugging Face Transformers, Gradio, LangChain, and Chroma**, alongside the judgment needed to interpret results and communicate their limits.
 
+Although this project uses an HR dataset, the underlying approach can be adapted across domains. In e-commerce, it could rank products against a customer’s search and refine results based on selected products. In business, it could match supplier profiles to purchasing requirements. By adapting the data and evaluating relevance for each use case, the same workflow—text representation, similarity ranking, and user feedback—can support a broader range of search and matching applications.
+
 ## Conclusion
 
 Potential Talents turns a recruitment search question into a structured NLP workflow: prepare profiles, compare representations, inspect rankings, explore cut-offs, and refine a shortlist through user feedback.
